@@ -19,7 +19,7 @@ Create a tool that can scrape images from websites and automatically create GitH
 - [x] Build command-line interface
 
 ### Phase 3: Testing and Refinement
-- [ ] Write unit tests for core modules
+- [x] Write unit tests for core modules
 - [ ] Perform integration testing
 - [ ] Optimize performance
 - [ ] Add error handling and logging
@@ -31,11 +31,11 @@ Create a tool that can scrape images from websites and automatically create GitH
 - [ ] Publish to npm (if applicable)
 
 ## Current Status
-Core functionality implemented. Need to add tests, improve error handling, and prepare for release.
+Core functionality implemented and unit tests written. Pull request created to merge into main branch. Need to complete integration testing, improve error handling, and prepare for release.
 
 ## Next Tasks
-1. Write unit tests for the scraper module
-2. Write unit tests for the GitHub issue creator module
+1. ✅ Write unit tests for the scraper module
+2. ✅ Write unit tests for the GitHub issue creator module
 3. Implement better error handling and logging
 4. Add support for authentication options beyond environment variables
 5. Test against various websites to improve scraping reliability

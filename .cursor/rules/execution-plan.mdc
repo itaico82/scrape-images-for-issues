@@ -9,3 +9,8 @@ alwaysApply: true
 - The project has an execution plan - [EXECUTION_PLAN.md](mdc:EXECUTION_PLAN.md)
 - Keep the execution plan file always up to date with any working addition or change
 - If the plan changes, change the file accordingly
+
+# Keep the Readme file up to date
+
+- Keep the [README.md](mdc:README.md) file neat and to the point
+- Add references to documentation if needed
