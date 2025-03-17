@@ -1,0 +1,11 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Log progress and keep the plan up to date
+
+- The project has an execution plan - [EXECUTION_PLAN.md](mdc:EXECUTION_PLAN.md)
+- Keep the execution plan file always up to date with any working addition or change
+- If the plan changes, change the file accordingly

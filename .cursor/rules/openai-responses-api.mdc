@@ -1,0 +1,150 @@
+---
+description: interacting with openAI
+globs: 
+alwaysApply: false
+---
+ # OpenAI Responses API
+
+## Role and Expertise:
+
+You are an expert developer working with OpenAI's Responses API, with the following expertise:
+- Deep understanding of the OpenAI Responses API endpoints, parameters, and response structure
+- Knowledge of best practices for integrating with LLM APIs
+- Experience with agentic AI applications that use built-in tools
+- Proficiency in TypeScript/JavaScript for API integration
+- Understanding of state management and conversational context in AI applications
+
+## API Overview:
+
+The Responses API is OpenAI's latest API for creating conversational and agentic AI experiences. It's designed to:
+- Simplify agentic AI development with built-in tool support
+- Manage conversation state automatically
+- Provide a more flexible and efficient way to build AI applications compared to Chat Completions
+
+## Key Features:
+
+1. **Built-in Tool Support**: Access to web search, image analysis, and code execution
+2. **State Management**: Conversation history is stored automatically
+3. **Flexible Response Formats**: Support for structured output (JSON) and text responses
+4. **Streaming**: Fast initial responses with progressive updates
+5. **Persistent Data**: Responses are stored by default and can be retrieved later
+
+## API Endpoints and Parameters:
+
+### Create Response
+**Endpoint**: `POST /v1/responses`
+
+**Required Parameters**:
+- `model`: String (e.g., "gpt-4o", "gpt-4o-mini")
+
+**Optional Parameters**:
+- `messages`: Array of message objects with role and content
+- `tools`: Array of tool objects defining available tools
+- `max_tokens`: Integer (default varies by model)
+- `temperature`: Number between 0-2 (default 1)
+- `response_format`: Object specifying format (JSON or text)
+- `user`: String to identify the end user
+- `seed`: Integer for deterministic sampling
+- `stream`: Boolean for streaming responses (default false)
+- `n`: Integer for number of completions to generate (default 1)
+- `top_p`: Number for nucleus sampling (default 1)
+- `frequency_penalty`: Number (default 0)
+- `presence_penalty`: Number (default 0)
+
+### Retrieve Response
+**Endpoint**: `GET /v1/responses/{response_id}`
+
+### List Responses
+**Endpoint**: `GET /v1/responses`
+**Parameters**:
+- `limit`: Number of responses to retrieve (default 20)
+- `before`: Response ID for pagination
+- `after`: Response ID for pagination
+
+### Delete Response
+**Endpoint**: `DELETE /v1/responses/{response_id}`
+
+## Built-in Tools:
+
+1. **Web Search**: Search the web for real-time information
+   - Parameter: `search_query` (string)
+
+2. **Image Analysis**: Analyze images provided in the request
+   - Parameter: `image` (base64 or URL)
+
+3. **Code Interpreter**: Execute code within a sandbox environment
+   - Parameter: `code` (string)
+
+## Response Structure:
+
+```typescript
+type ResponseObject = {
+  id: string;
+  object: "response";
+  created: number;
+  model: string;
+  usage: {
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
+  };
+  choices: Array<{
+    message: {
+      role: "assistant";
+      content: string | null;
+      tool_calls?: Array<{
+        id: string;
+        type: "function";
+        function: {
+          name: string;
+          arguments: string;
+        };
+      }>;
+    };
+    finish_reason: "stop" | "length" | "content_filter" | "tool_calls";
+    index: number;
+  }>;
+};
+```
+
+## Best Practices:
+
+1. **Tool Definition**: Clearly define tool parameters and requirements
+2. **Error Handling**: Implement robust error handling for API responses
+3. **Streaming**: Use streaming for better user experience with real-time feedback
+4. **State Management**: Leverage the built-in state management for complex conversations
+5. **Response Formatting**: Use response_format parameter for structured outputs
+
+## Code Style:
+
+- Use TypeScript for type safety when working with API responses
+- Implement proper error handling for all API calls
+- Leverage async/await for asynchronous API interactions
+- Store response IDs for later retrieval when conversation continuity is needed
+
+## Example Usage:
+
+```typescript
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+// Create a response with web search tool
+const response = await openai.responses.create({
+  model: "gpt-4o",
+  messages: [
+    { role: "user", content: "What's the latest news about AI?" }
+  ],
+  tools: [
+    {
+      type: "web_search",
+    }
+  ],
+});
+
+// Retrieve a response
+const fetchedResponse = await openai.responses.retrieve(response.id);
+
+// Delete a response
+await openai.responses.del(response.id);
+```
