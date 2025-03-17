@@ -1631,6 +1631,427 @@ We still have an issue with the mocking. Let's fix the issue-creator.test.ts fil
 
 ---
 
+```diff
+- import { Octokit } from 'octokit';
+  import { createIssueWithImages } from './issue-creator';
+  import { ScrapedImage } from '../scrapers/image-scraper';
+  
+- // Mock Octokit
++ // Mock the Octokit module
+  jest.mock('octokit', () => {
++   const mockRequest = jest.fn().mockResolvedValue({
++     data: {
++       html_url: 'https://github.com/test-owner/test-repo/issues/1'
++     }
++   });
++   
+    return {
+      Octokit: jest.fn().mockImplementation(() => ({
+-       request: jest.fn()
++       request: mockRequest
+      }))
+    };
+  });
++ 
++ // Mock dotenv config
++ jest.mock('dotenv', () => ({
++   config: jest.fn()
++ }));
+  
+  describe('GitHub Issue Creator', () => {
+-   let mockOctokit: any;
++   // Get the mocked function
++   const mockRequest = jest.requireMock('octokit').Octokit().request;
+    
+    beforeEach(() => {
+      jest.clearAllMocks();
+-     
+-     // Get the mocked constructor instance
+-     mockOctokit = (Octokit as unknown as jest.Mock).mock.instances[0];
+-     
+-     // Mock the request method response
+-     mockOctokit.request.mockResolvedValue({
+-       data: {
+-         html_url: 'https://github.com/test-owner/test-repo/issues/1'
+-       }
+-     });
+    });
+  
+  
+      // Verify Octokit request was called with correct parameters
+-     expect(mockOctokit.request).toHaveBeenCalledWith(
++     expect(mockRequest).toHaveBeenCalledWith(
+        'POST /repos/{owner}/{repo}/issues',
+        expect.objectContaining({
+  
+      // Verify the markdown for images is in the request body
+-     const requestCall = mockOctokit.request.mock.calls[0][1];
++     const requestCall = mockRequest.mock.calls[0][1];
+      expect(requestCall.body).toContain('![Image 1](https://example.com/image1.jpg)');
+      expect(requestCall.body).toContain('![Image 2](https://example.com/image2.jpg)');
+    it('should handle errors gracefully', async () => {
+      // Mock a failure
+-     mockOctokit.request.mockRejectedValueOnce(new Error('API Error'));
++     mockRequest.mockRejectedValueOnce(new Error('API Error'));
+  
+      // Expect the function to throw
+  
+      // Verify the request was still made
+-     expect(mockOctokit.request).toHaveBeenCalled();
++     expect(mockRequest).toHaveBeenCalled();
+      
+      // The body should not contain image markdown
+-     const requestCall = mockOctokit.request.mock.calls[0][1];
++     const requestCall = mockRequest.mock.calls[0][1];
+      expect(requestCall.body).not.toContain('![');
+      expect(requestCall.body).toContain('Body');
+```
+
+---
+
+Let's run the tests again:
+
+---
+
+```bash
+npm test
+```
+
+```
+(base) itaicohen@MacBook-Pro Scrape_images_for_issues % npm test
+
+> scrape-images-for-issues@0.1.0 test
+> jest
+
+
+
+  console.error
+    Error creating GitHub issue: Error: API Error
+        at Object.<anonymous> (/Users/itaicohen/Documents/Programming playground/Scrape_images_for_issues/src
+/github/issue-creator.test.ts:86:39)
+        at Promise.then.completed (/Users/itaicohen/Documents/Programming playground/Scrape_images_for_issues
+/node_modules/jest-circus/build/utils.js:298:28)
+        at new Promise (<anonymous>)
+        at callAsyncCircusFn (/Users/itaicohen/Documents/Programming playground/Scrape_images_for_issues/node
+_modules/jest-circus/build/utils.js:231:10)
+        at _callCircusTest (/Users/itaicohen/Documents/Programming playground/Scrape_images_for_issues/node_m
+odules/jest-circus/build/run.js:316:40)
+        at processTicksAndRejections (node:internal/process/task_queues:105:5)
+        at _runTest (/Users/itaicohen/Documents/Programming playground/Scrape_images_for_issues/node_modules/
+jest-circus/build/run.js:252:3)
+        at _runTestsForDescribeBlock (/Users/itaicohen/Documents/Programming playground/Scrape_images_for_iss
+ues/node_modules/jest-circus/build/run.js:126:9)
+        at _runTestsForDescribeBlock (/Users/itaicohen/Documents/Programming playground/Scrape_images_for_iss
+ues/node_modules/jest-circus/build/run.js:121:9)
+        at run (/Users/itaicohen/Documents/Programming playground/Scrape_images_for_issues/node_modules/jest-
+circus/build/run.js:71:3)
+        at runAndTransformResultsToJestFormat (/Users/itaicohen/Documents/Programming playground/Scrape_image
+s_for_issues/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+        at jestAdapter (/Users/itaicohen/Documents/Programming playground/Scrape_images_for_issues/node_modul
+es/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+        at runTestInternal (/Users/itaicohen/Documents/Programming playground/Scrape_images_for_issues/node_m
+odules/jest-runner/build/runTest.js:367:16)
+        at runTest (/Users/itaicohen/Documents/Programming playground/Scrape_images_for_issues/node_modules/j
+est-runner/build/runTest.js:444:34)
+        at Object.worker (/Users/itaicohen/Documents/Programming playground/Scrape_images_for_issues/node_mod
+ules/jest-runner/build/testWorker.js:106:12)
+
+      61 |     return response.data.html_url;
+      62 |   } catch (error) {
+    > 63 |     console.error('Error creating GitHub issue:', error);
+         |             ^
+      64 |     throw error;
+      65 |   }
+      66 | };
+
+      at error (src/github/issue-creator.ts:63:13)
+      at Object.<anonymous> (src/github/issue-creator.test.ts:89:5)
+
+ PASS  src/github/issue-creator.test.ts
+  GitHub Issue Creator
+    ✓ should create a GitHub issue with images (9 ms)
+    ✓ should handle errors gracefully (38 ms)
+    ✓ should handle empty images array
+
+  console.error
+    Error scraping images: Error: Network error
+        at Object.<anonymous> (/Users/itaicohen/Documents/Programming playground/Scrape_images_for_issues/src
+/scrapers/image-scraper.test.ts:59:19)
+        at Promise.then.completed (/Users/itaicohen/Documents/Programming playground/Scrape_images_for_issues
+/node_modules/jest-circus/build/utils.js:298:28)
+        at new Promise (<anonymous>)
+        at callAsyncCircusFn (/Users/itaicohen/Documents/Programming playground/Scrape_images_for_issues/node
+_modules/jest-circus/build/utils.js:231:10)
+        at _callCircusTest (/Users/itaicohen/Documents/Programming playground/Scrape_images_for_issues/node_m
+odules/jest-circus/build/run.js:316:40)
+        at processTicksAndRejections (node:internal/process/task_queues:105:5)
+        at _runTest (/Users/itaicohen/Documents/Programming playground/Scrape_images_for_issues/node_modules/
+jest-circus/build/run.js:252:3)
+        at _runTestsForDescribeBlock (/Users/itaicohen/Documents/Programming playground/Scrape_images_for_iss
+ues/node_modules/jest-circus/build/run.js:126:9)
+        at _runTestsForDescribeBlock (/Users/itaicohen/Documents/Programming playground/Scrape_images_for_iss
+ues/node_modules/jest-circus/build/run.js:121:9)
+        at run (/Users/itaicohen/Documents/Programming playground/Scrape_images_for_issues/node_modules/jest-
+circus/build/run.js:71:3)
+        at runAndTransformResultsToJestFormat (/Users/itaicohen/Documents/Programming playground/Scrape_image
+s_for_issues/node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+        at jestAdapter (/Users/itaicohen/Documents/Programming playground/Scrape_images_for_issues/node_modul
+es/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+        at runTestInternal (/Users/itaicohen/Documents/Programming playground/Scrape_images_for_issues/node_m
+odules/jest-runner/build/runTest.js:367:16)
+        at runTest (/Users/itaicohen/Documents/Programming playground/Scrape_images_for_issues/node_modules/j
+est-runner/build/runTest.js:444:34)
+        at Object.worker (/Users/itaicohen/Documents/Programming playground/Scrape_images_for_issues/node_mod
+ules/jest-runner/build/testWorker.js:106:12)
+
+      66 |     return images;
+      67 |   } catch (error) {
+    > 68 |     console.error('Error scraping images:', error);
+         |             ^
+      69 |     throw error;
+      70 |   }
+      71 | };
+
+      at error (src/scrapers/image-scraper.ts:68:13)
+      at Object.<anonymous> (src/scrapers/image-scraper.test.ts:63:5)
+
+ PASS  src/scrapers/image-scraper.test.ts
+  Image Scraper
+    ✓ should extract images from HTML content (7 ms)
+    ✓ should handle errors gracefully (23 ms)
+    ✓ should respect the maximum images limit (1 ms)
+
+-------------------|---------|----------|---------|---------|-------------------
+File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+-------------------|---------|----------|---------|---------|-------------------
+All files          |   97.36 |    73.68 |     100 |     100 |                   
+ github            |     100 |      100 |     100 |     100 |                   
+  issue-creator.ts |     100 |      100 |     100 |     100 |                   
+ scrapers          |   95.83 |    73.68 |     100 |     100 |                   
+  image-scraper.ts |   95.83 |    73.68 |     100 |     100 | 25-34,47,58-59    
+-------------------|---------|----------|---------|---------|-------------------
+Test Suites: 2 passed, 2 total
+Tests:       6 passed, 6 total
+Snapshots:   0 total
+Time:        2.965 s, estimated 3 s
+Ran all test suites.
+(base) itaicohen@MacBook-Pro Scrape_images_for_issues %
+```
+
+---
+
+Great! All the tests are now passing. Let's commit these changes and update the execution plan:
+
+---
+
+```diff
+  
+  ### Phase 3: Testing and Refinement
+- - [ ] Write unit tests for core modules
++ - [x] Write unit tests for core modules
+  - [ ] Perform integration testing
+  - [ ] Optimize performance
+  
+  ## Current Status
+- Core functionality implemented. Need to add tests, improve error handling, and prepare for release.
++ Core functionality implemented and unit tests written. Pull request created to merge into main branch. Need to complete integration testing, improve error handling, and prepare for release.
+  
+  ## Next Tasks
+- 1. Write unit tests for the scraper module
+- 2. Write unit tests for the GitHub issue creator module
++ 1. ✅ Write unit tests for the scraper module
++ 2. ✅ Write unit tests for the GitHub issue creator module
+  3. Implement better error handling and logging
+  4. Add support for authentication options beyond environment variables
+```
+
+---
+
+Let's commit these changes:
+
+---
+
+```bash
+git add .
+```
+
+```
+(base) itaicohen@MacBook-Pro Scrape_images_for_issues % 
+
+```
+
+---
+
+```bash
+git commit -m "Add unit tests for image scraper and GitHub issue creator"
+```
+
+```
+<nit tests for image scraper and GitHub issue creator"
+[feature/image-scraper 3581424] Add unit tests for image scraper and GitHub issue creator
+ 6 files changed, 1524 insertions(+), 4 deletions(-)
+ create mode 100644 jest.config.js
+ create mode 100644 src/github/issue-creator.test.ts
+ create mode 100644 src/scrapers/image-scraper.test.ts
+(base) itaicohen@MacBook-Pro Scrape_images_for_issues %
+```
+
+---
+
+```bash
+git push origin feature/image-scraper
+```
+
+```
+(base) itaicohen@MacBook-Pro Scrape_images_for_issues % git push origin feature/image-scraper
+Enumerating objects: 26, done.
+Counting objects: 100% (26/26), done.
+Delta compression using up to 10 threads
+Compressing objects: 100% (14/14), done.
+Writing objects: 100% (15/15), 14.11 KiB | 14.11 MiB/s, done.
+Total 15 (delta 5), reused 0 (delta 0), pack-reused 0
+remote: Resolving deltas: 100% (5/5), completed with 5 local objects.
+To https://github.com/itaico82/scrape-images-for-issues.git
+   ad5174b..3581424  feature/image-scraper -> feature/image-scraper
+(base) itaicohen@MacBook-Pro Scrape_images_for_issues %
+```
+
+---
+
+Perfect! We've made great progress today. Here's a summary of what we've accomplished:
+
+1. Created a GitHub repository for the project
+2. Set up the basic project structure with TypeScript
+3. Implemented the core functionality:
+   - Image scraper with Cheerio
+   - GitHub issue creator with Octokit
+   - Command-line interface with Commander
+4. Added unit tests for both main modules
+5. Created a pull request to merge changes into the main branch
+
+The pull request is now updated with our test implementation. The tests are passing with good coverage (97.36% overall).
+
+Next steps could include:
+1. Improve error handling and logging
+2. Add integration testing
+3. Test against various websites to improve reliability
+4. Prepare for release
+
+Would you like to focus on any specific next task from the execution plan?
+
+---
+
+_**User**_
+
+continue with the plan
+
+---
+
+_**Assistant**_
+
+
+
+---
+
+Let's continue with the next task in our execution plan: implementing better error handling and logging. This will make our application more robust and easier to debug.
+
+First, let's create a utility directory for our error handling and logging components:
+
+---
+
+```bash
+mkdir -p src/utils
+```
+
+```
+(base) itaicohen@MacBook-Pro Scrape_images_for_issues % 
+
+```
+
+---
+
+Now, let's create custom error classes for our application:
+
+---
+
+```diff
+- 
++ /**
++  * Custom error classes for the application
++  */
++ 
++ /**
++  * Base application error class
++  */
++ export class AppError extends Error {
++   constructor(message: string) {
++     super(message);
++     this.name = this.constructor.name;
++     Error.captureStackTrace(this, this.constructor);
++   }
++ }
++ 
++ /**
++  * Error for scraper-related issues
++  */
++ export class ScraperError extends AppError {
++   constructor(
++     message: string,
++     public readonly url?: string,
++     public readonly cause?: Error
++   ) {
++     super(`Scraper error: ${message}${url ? ` (URL: ${url})` : ''}`);
++     if (cause) {
++       this.stack = `${this.stack}\nCaused by: ${cause.stack}`;
++     }
++   }
++ }
++ 
++ /**
++  * Error for GitHub API related issues
++  */
++ export class GitHubError extends AppError {
++   constructor(
++     message: string,
++     public readonly statusCode?: number,
++     public readonly repoInfo?: { owner: string; repo: string },
++     public readonly cause?: Error
++   ) {
++     super(
++       `GitHub API error: ${message}${
++         statusCode ? ` (Status: ${statusCode})` : ''
++       }${
++         repoInfo
++           ? ` (Repository: ${repoInfo.owner}/${repoInfo.repo})`
++           : ''
++       }`
++     );
++     if (cause) {
++       this.stack = `${this.stack}\nCaused by: ${cause.stack}`;
++     }
++   }
++ }
++ 
++ /**
++  * Error for configuration-related issues
++  */
++ export class ConfigError extends AppError {
++   constructor(message: string, public readonly configKey?: string) {
++     super(
++       `Configuration error: ${message}${
++         configKey ? ` (Missing or invalid: ${configKey})` : ''
++       }`
++     );
++   }
++ } 
+```
+
+---
+
+Now, let's create a logging utility:
+
+---
+
 Cancelled
 
 ---

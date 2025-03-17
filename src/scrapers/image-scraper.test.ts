@@ -5,6 +5,26 @@ import { scrapeImagesFromUrl, ScrapedImage } from './image-scraper';
 jest.mock('axios');
 const mockedAxios = axios as jest.Mocked<typeof axios>;
 
+// Mock the config module
+jest.mock('../utils/config', () => ({
+  config: {
+    getConfig: jest.fn().mockReturnValue({
+      maxImagesPerPage: 10,
+      userAgent: 'scrape-images-for-issues'
+    })
+  }
+}));
+
+// Mock the logger to avoid polluting test output
+jest.mock('../utils/logger', () => ({
+  logger: {
+    debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn()
+  }
+}));
+
 describe('Image Scraper', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -33,8 +53,9 @@ describe('Image Scraper', () => {
     // Verify axios was called correctly
     expect(mockedAxios.get).toHaveBeenCalledWith(url, {
       headers: {
-        'User-Agent': expect.any(String),
+        'User-Agent': 'scrape-images-for-issues',
       },
+      timeout: 10000,
     });
 
     // Verify the result

@@ -1,4 +1,4 @@
-import { createIssueWithImages } from './issue-creator';
+import { createIssueWithImages, getOctokit } from './issue-creator';
 import { ScrapedImage } from '../scrapers/image-scraper';
 
 // Mock the Octokit module
@@ -19,6 +19,28 @@ jest.mock('octokit', () => {
 // Mock dotenv config
 jest.mock('dotenv', () => ({
   config: jest.fn()
+}));
+
+// Mock the config module
+jest.mock('../utils/config', () => ({
+  config: {
+    getConfig: jest.fn().mockReturnValue({
+      githubToken: 'test-token',
+      maxImagesPerPage: 10,
+      userAgent: 'test-user-agent'
+    }),
+    validate: jest.fn().mockReturnValue(true)
+  }
+}));
+
+// Mock the logger to avoid polluting test output
+jest.mock('../utils/logger', () => ({
+  logger: {
+    debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn()
+  }
 }));
 
 describe('GitHub Issue Creator', () => {
